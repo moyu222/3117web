@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}首页 - 在线招聘系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">欢迎来到在线招聘系统</h1>
+        
+        {% if user %}
+            <div class="alert alert-success">
+                <h5>欢迎，{{ user.nickname }}！</h5>
+                <p>您当前的身份是：{% if user.is_company %}公司用户{% else %}个人用户{% endif %}</p>
+            </div>
+            
+            {% if user.is_company %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">公司用户功能</h5>
+                        <ul>
+                            {% comment %}<li><a href="{% url 'jobs:create' %}">发布新职位</a></li>
+                            <li><a href="{% url 'applications:company_list' %}">查看申请列表</a></li>{% endcomment %}
+                            <li>发布新职位（功能开发中）</li>
+                            <li>查看申请列表（功能开发中）</li>
+                        </ul>
+                    </div>
+                </div>
+            {% else %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">个人用户功能</h5>
+                        <ul>
+                            {% comment %}<li><a href="{% url 'jobs:list' %}">浏览职位列表</a></li>{% endcomment %}
+                            <li>浏览职位列表（功能开发中）</li>
+                        </ul>
+                    </div>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="alert alert-info">
+                <h5>欢迎访问在线招聘系统</h5>
+                <p>请<a href="{% url 'users:login' %}">登录</a>或<a href="{% url 'users:register' %}">注册</a>以使用更多功能。</p>
+            </div>
+        {% endif %}
+        
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">快速链接</h5>
+                {% comment %}<a href="{% url 'jobs:list' %}" class="btn btn-primary">查看所有职位</a>{% endcomment %}
+                <p>职位列表功能开发中</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

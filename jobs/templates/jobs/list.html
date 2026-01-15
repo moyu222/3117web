@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+
+{% block title %}职位列表 - 在线招聘系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>职位列表</h2>
+            {% if is_company %}
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#jobModal" onclick="loadCreateForm()">
+                    <i class="bi bi-plus-circle"></i> 创建职位
+                </button>
+            {% endif %}
+        </div>
+        
+        <!-- 职位表格 -->
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>职位标题</th>
+                                <th>职位要求</th>
+                                <th>职位职责</th>
+                                <th>薪资</th>
+                                <th>创建时间</th>
+                                {% if is_company %}
+                                    <th>操作</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody id="jobTableBody">
+                            {% for job in page_obj %}
+                            <tr id="job-row-{{ job.id }}">
+                                <td>{{ job.id }}</td>
+                                <td>{{ job.title }}</td>
+                                <td>{{ job.requirement|truncatewords:10 }}</td>
+                                <td>{{ job.duty|truncatewords:10 }}</td>
+                                <td>{{ job.salary }}</td>
+                                <td>{{ job.created_at|date:"Y-m-d H:i" }}</td>
+                                {% if is_company %}
+                                    <td>
+                                        <button class="btn btn-sm btn-warning me-1" onclick="loadUpdateForm({{ job.id }})" data-bs-toggle="modal" data-bs-target="#jobModal">
+                                            编辑
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" onclick="deleteJob({{ job.id }})">
+                                            删除
+                                        </button>
+                                    </td>
+                                {% endif %}
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="{% if is_company %}7{% else %}6{% endif %}" class="text-center">暂无职位</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- 分页 -->
+                {% if page_obj.has_other_pages %}
+                <nav aria-label="职位列表分页">
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">上一页</a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">下一页</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 职位表单弹窗 -->
+<div class="modal fade" id="jobModal" tabindex="-1" aria-labelledby="jobModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="jobModalLabel">创建职位</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="jobModalBody">
+                <!-- 表单内容通过 AJAX 加载 -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 获取 CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+const csrftoken = getCookie('csrftoken');
+
+// 设置 AJAX 默认 CSRF token
+$.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+        if (!(/^http:.*/.test(settings.url) || /^https:.*/.test(settings.url))) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        }
+    }
+});
+
+// 加载创建表单
+function loadCreateForm() {
+    $('#jobModalLabel').text('创建职位');
+    $('#jobModalBody').html('<div class="text-center"><div class="spinner-border" role="status"></div></div>');
+    
+    $.get('{% url "jobs:create" %}', function(data) {
+        $('#jobModalBody').html(data);
+    }).fail(function() {
+        $('#jobModalBody').html('<div class="alert alert-danger">加载表单失败，请重试。</div>');
+    });
+}
+
+// 加载更新表单
+function loadUpdateForm(jobId) {
+    $('#jobModalLabel').text('编辑职位');
+    $('#jobModalBody').html('<div class="text-center"><div class="spinner-border" role="status"></div></div>');
+    
+    $.get('/jobs/' + jobId + '/update/', function(data) {
+        $('#jobModalBody').html(data);
+    }).fail(function() {
+        $('#jobModalBody').html('<div class="alert alert-danger">加载表单失败，请重试。</div>');
+    });
+}
+
+// 提交表单（创建或更新）
+function submitJobForm() {
+    const form = $('#jobForm');
+    const formData = form.serialize();
+    const jobId = form.data('job-id');
+    const url = jobId ? '/jobs/' + jobId + '/update/' : '{% url "jobs:create" %}';
+    
+    $.ajax({
+        url: url,
+        method: 'POST',
+        data: formData,
+        success: function(response) {
+            if (response.success) {
+                // 关闭弹窗
+                $('#jobModal').modal('hide');
+                
+                // 显示成功消息
+                showMessage('success', response.message);
+                
+                // 刷新页面
+                setTimeout(function() {
+                    location.reload();
+                }, 1000);
+            } else {
+                // 显示错误
+                showFormErrors(response.errors);
+            }
+        },
+        error: function(xhr) {
+            const response = xhr.responseJSON;
+            if (response && response.errors) {
+                showFormErrors(response.errors);
+            } else if (response && response.error) {
+                showMessage('danger', response.error);
+            } else {
+                showMessage('danger', '操作失败，请重试。');
+            }
+        }
+    });
+}
+
+// 删除职位
+function deleteJob(jobId) {
+    if (!confirm('确定要删除这个职位吗？')) {
+        return;
+    }
+    
+    $.ajax({
+        url: '/jobs/' + jobId + '/delete/',
+        method: 'POST',
+        success: function(response) {
+            if (response.success) {
+                showMessage('success', response.message);
+                // 移除表格行
+                $('#job-row-' + jobId).fadeOut(function() {
+                    $(this).remove();
+                });
+            } else {
+                showMessage('danger', response.error || '删除失败，请重试。');
+            }
+        },
+        error: function(xhr) {
+            const response = xhr.responseJSON;
+            showMessage('danger', response.error || '删除失败，请重试。');
+        }
+    });
+}
+
+// 显示表单错误
+function showFormErrors(errors) {
+    // 清除之前的错误
+    $('.is-invalid').removeClass('is-invalid');
+    $('.invalid-feedback').remove();
+    
+    // 显示新错误
+    for (let field in errors) {
+        const fieldElement = $('#id_' + field);
+        fieldElement.addClass('is-invalid');
+        fieldElement.after('<div class="invalid-feedback">' + errors[field][0] + '</div>');
+    }
+}
+
+// 显示消息
+function showMessage(type, message) {
+    const alertHtml = '<div class="alert alert-' + type + ' alert-dismissible fade show" role="alert">' +
+        message +
+        '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+        '</div>';
+    $('.container').first().prepend(alertHtml);
+    
+    // 3秒后自动消失
+    setTimeout(function() {
+        $('.alert').fadeOut(function() {
+            $(this).remove();
+        });
+    }, 3000);
+}
+
+// 表单提交事件
+$(document).on('submit', '#jobForm', function(e) {
+    e.preventDefault();
+    submitJobForm();
+});
+</script>
+{% endblock %}
