@@ -1,0 +1,13 @@
+from django.urls import path
+from . import views
+
+app_name = 'applications'
+
+urlpatterns = [
+    # 以下路由将在后续实现
+    # path('create/', views.application_create_view, name='create'),
+    # 公司端申请相关路由（通过 /company/ 前缀访问）
+    # path('applications/', views.company_application_list_view, name='company_list'),
+    # path('applications/<int:app_id>/', views.company_application_detail_view, name='company_detail'),
+    # path('applications/<int:app_id>/download-cv/', views.download_cv_view, name='download_cv'),
+]
